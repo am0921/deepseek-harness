@@ -1,0 +1,81 @@
+# Both lanes keep the standard Dsh Web UI and its original conversation renderers.
+- id: tool-executor-native
+  disabled: true
+
+- id: llm-deepseek
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    baseURL: !!js process.env.DEEPSEEK_BASE_URL
+    defaultContextWindow: 1000000
+    streamIdleTimeoutMs: 180000
+    reasoningEffort: high
+    maxTokens: 32768
+    retryPolicy:
+      mode: normal
+      maxRetries: 0
+    models:
+      - id: deepseek-flash
+        contextWindow: 1000000
+        maxTokens: 32768
+        inputModalities: [text]
+
+- id: system-prompt
+  config:
+    includeHarnessIdentity: false
+    includeRuntimeContext: false
+    personaPrefix: 'You are an autonomous software engineer. Your working directory is /workspace.'
+
+- id: ptc-runtime
+  config:
+    executionMode: persistent-in-memory
+    timeoutMs: 120000
+    maxTimeoutMs: 300000
+    maxOutputBytes: 2097152
+    maxOldGenerationSizeMb: 256
+    maxMessageBytes: 8388608
+    maxPendingCalls: 4
+    graceMs: 3000
+
+- id: tool-executor-ptc
+  disabled: false
+  config:
+    maxParallelSubCalls: 4
+
+- id: tool-bash
+  disabled: false
+- id: tool-fs
+  disabled: false
+- id: tool-fs-search
+  disabled: false
+- id: session-title-llm
+  disabled: true
+- id: session-telemetry-otel
+  disabled: true
+- id: session-log-deepseek
+  disabled: true
+- id: plugin-package-inventory-deepseek
+  disabled: true
+- id: hmr
+  disabled: true
+- id: sandbox-policy
+  config:
+    mode: danger-full-access
+    workspaceRoot: /workspace
+
+- id: approval
+  config:
+    policy: never
+
+- id: web-runtime
+  config:
+    openBrowser: false
+    printUrl: true
+    surfaceContext: false
+    publicUrl: !!js process.env.ARENA_PUBLIC_URL
+
+- insert:
+    - id: arena-sdk
+      name: '@deepseek-ai/dsh-sdk-jsonrpc-server'
+      inject: [webStartup]
+      config:
+        maxTokensAsSuccess: false

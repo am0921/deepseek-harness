@@ -1,0 +1,11 @@
+{
+  "preparing": {"prepared": "ready", "error": "error", "stop": "stopped"},
+  "ready": {"start": "running", "error": "error", "stop": "stopped"},
+  "running": {"idle": "grading", "error": "error", "stop": "stopped", "limit": "limit"},
+  "grading": {"feedback": "feedback", "pass": "passed", "error": "error", "stop": "stopped", "limit": "limit"},
+  "feedback": {"resume": "running", "error": "error", "stop": "stopped", "limit": "limit"},
+  "passed": {},
+  "error": {},
+  "stopped": {},
+  "limit": {}
+}

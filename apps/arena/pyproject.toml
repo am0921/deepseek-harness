@@ -1,0 +1,23 @@
+[project]
+name = "dsh-arena"
+version = "0.1.0"
+description = "A paired, instrumented Dsh PTC experiment with an independent Redis grader."
+requires-python = ">=3.11"
+dependencies = ["aiohttp>=3.12,<4"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "hypothesis>=6,<7", "ruff>=0.12,<1"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.uv]
+package = false

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dsh Arena — DeepSeek vs Engy</title>
+  <link rel="icon" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/native.css">
+  <script src="/static/arena.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Dsh <span>比較</span></div>
+    <div class="experiment-title"><h1>DeepSeek V4.1 Flash <span>1017</span></h1></div>
+    <div class="actions"><span id="connection" class="connection">接続中</span><button id="settings">接続設定</button><button id="stop" class="danger" disabled>停止</button><button id="start" class="primary" disabled><span>▶</span> 同時スタート</button></div>
+  </header>
+  <div id="demo-banner" class="demo-banner" hidden>DEMO / ローカルの模擬API。表示されるトークン数・速度・料金は架空の値です。有料APIは呼び出しません。</div>
+  <section class="experiment-bar" aria-label="実験条件">
+    <span class="condition"><span class="dot"></span> Dsh PTC <strong>high</strong></span>
+    <span class="condition" id="resources">各 2 vCPU / 1.5 GiB</span>
+    <span class="condition" id="verifier-resources">採点 0.5 vCPU / 256 MiB</span>
+    <span class="condition" id="verification">検証を確認中</span>
+    <span class="condition hash" id="payload-match">初回リクエスト一致を待機</span>
+    <span class="condition skew" id="skew">送信差 —</span>
+  </section>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <main id="panes" class="panes">
+    <section class="lane official" data-lane="official" aria-label="DeepSeek公式の実行">
+      <div class="lane-heading"><div class="provider-icon">D</div><div><div class="provider-title">DeepSeek <span>OFFICIAL</span></div><div class="model-id">deepseek-flash</div></div><div class="lane-state"><span class="status-dot"></span><span class="phase">待機中</span><small class="elapsed">00:00</small></div></div>
+      <div class="metrics">
+        <div class="metric accent"><label>Token/s <span title="直近の完了リクエストの (API出力トークン数−1) / 最初〜最後の内容delta秒。チャンク数はトークン数として使いません。">ⓘ</span></label><strong data-metric="tokensPerSecond">—</strong><small>直近の完了リクエスト</small></div>
+        <div class="metric"><label>Ping <span title="認証付きGET /modelsのHTTP往復時間。ICMP pingではありません。">ⓘ</span></label><strong data-metric="pingMs">—</strong><small>HTTP /models · ms</small></div>
+        <div class="metric"><label>Pricing <span title="設定した$/100万tokenから計算する概算。DeepSeek公式の初期設定はピーク料金です。請求実額ではありません。">ⓘ</span></label><strong data-metric="cost">$0.0000</strong><small class="rate-detail">$/M: 0.30 / 1.20 / 0.006</small></div>
+        <div class="metric"><label>Input</label><strong data-metric="input">0</strong><small>キャッシュを含む総入力</small></div>
+        <div class="metric"><label>Output</label><strong data-metric="output">0</strong><small>API reported</small></div>
+        <div class="metric"><label>Cached input</label><strong data-metric="cached">0</strong><small>cache read tokens</small></div>
+        <div class="metric"><label>Cached %</label><strong data-metric="cachePercent">0.0<span>%</span></strong><small>cached / total input</small></div>
+      </div>
+      <div class="native-toolbar"><span>Dsh Web</span><span class="ttft">TTFT —</span><span class="round">ROUND 0</span><a class="open-native" hidden target="_blank" rel="noopener">別タブで開く ↗</a></div>
+      <div class="native-view"><div class="native-placeholder">開始すると、ここにDsh標準の会話画面を表示します。</div><iframe class="dsh-frame" title="DeepSeek公式 — Dsh標準UI" hidden></iframe></div>
+      <div class="grade-strip"><span class="grade-icon">◇</span><div><strong class="grade-title">外部採点を待機</strong><small class="grade-detail">終了イベント → スナップショット → 固定テスト → 結果を返却</small></div><button class="show-grade" disabled>結果を見る ↗</button></div>
+    </section>
+    <section class="lane engy" data-lane="engy" aria-label="Engyの実行">
+      <div class="lane-heading"><div class="provider-icon">e</div><div><div class="provider-title">engy <span>VERIFIED INFERENCE</span></div><div class="model-id">deepseek-v4.1-flash-1017</div></div><div class="lane-state"><span class="status-dot"></span><span class="phase">待機中</span><small class="elapsed">00:00</small></div></div>
+      <div class="metrics">
+        <div class="metric accent"><label>Token/s <span title="API報告の出力token数と実測ストリーム時間から計算。ストリーム中は直近の完了値を表示。">ⓘ</span></label><strong data-metric="tokensPerSecond">—</strong><small>直近の完了リクエスト</small></div>
+        <div class="metric"><label>Ping <span title="認証付きGET /v1/modelsのHTTP往復時間。">ⓘ</span></label><strong data-metric="pingMs">—</strong><small>HTTP /models · ms</small></div>
+        <div class="metric"><label>Pricing <span title="設定した$/100万tokenによる概算。請求実額ではありません。">ⓘ</span></label><strong data-metric="cost">$0.0000</strong><small class="rate-detail">$/M: 0.03 / 0.12 / 0.006</small></div>
+        <div class="metric"><label>Input</label><strong data-metric="input">0</strong><small>キャッシュを含む総入力</small></div>
+        <div class="metric"><label>Output</label><strong data-metric="output">0</strong><small>API reported</small></div>
+        <div class="metric"><label>Cached input</label><strong data-metric="cached">0</strong><small>cache read tokens</small></div>
+        <div class="metric"><label>Cached %</label><strong data-metric="cachePercent">0.0<span>%</span></strong><small>cached / total input</small></div>
+      </div>
+      <div class="native-toolbar"><span>Dsh Web</span><span class="ttft">TTFT —</span><span class="round">ROUND 0</span><a class="open-native" hidden target="_blank" rel="noopener">別タブで開く ↗</a></div>
+      <div class="native-view"><div class="native-placeholder">同じDsh・PTC・タスク・採点器を使います。</div><iframe class="dsh-frame" title="Engy — Dsh標準UI" hidden></iframe></div>
+      <div class="grade-strip"><span class="grade-icon">◇</span><div><strong class="grade-title">外部採点を待機</strong><small class="grade-detail">採点器はエージェントから隔離されています。</small></div><button class="show-grade" disabled>結果を見る ↗</button></div>
+    </section>
+  </main>
+  <footer class="bottom-bar"><span id="run-id">NO RUN / LOCAL WORKSPACE</span><span id="run-links"></span><span>料金は概算 · 推論サーバーの資源は提供元が管理</span></footer>
+  <details class="task-details"><summary><span>01 / TASK SPECIFICATION</span> ミニRedis — 固定タスクと合格条件</summary><pre id="task"></pre></details>
+  <dialog id="settings-dialog">
+    <form id="settings-form">
+      <div class="dialog-heading"><div><span class="eyebrow">CONNECTION & PRICING</span><h2>実験の接続設定</h2></div><button type="button" class="close-dialog" aria-label="閉じる">×</button></div>
+      <p class="dialog-intro">キーはローカルの計測ゲートウェイが保持します。エージェントのコンテナには渡りません。</p>
+      <div class="settings-providers">
+        <fieldset data-provider="official"><legend>DeepSeek official</legend><label>API key<input name="key" type="password" autocomplete="off" placeholder="DEEPSEEK_API_KEY"></label><label>Messages base URL<input name="baseUrl" type="url" required></label><label>Model ID<input name="model" required></label><div class="price-inputs"><label>Input $/M<input name="input" type="number" min="0" step="any" required></label><label>Output $/M<input name="output" type="number" min="0" step="any" required></label><label>Cache $/M<input name="cached" type="number" min="0" step="any" required></label></div><small>公式の初期値はピーク料金。オフピークは各レートを半額に設定。</small></fieldset>
+        <fieldset data-provider="engy"><legend>Engy</legend><label>API key<input name="key" type="password" autocomplete="off" placeholder="ENGY_API_KEY"></label><label>Messages base URL<input name="baseUrl" type="url" required></label><label>Model ID<input name="model" required></label><div class="price-inputs"><label>Input $/M<input name="input" type="number" min="0" step="any" required></label><label>Output $/M<input name="output" type="number" min="0" step="any" required></label><label>Cache $/M<input name="cached" type="number" min="0" step="any" required></label></div><small>APIのモデル一覧と現在の料金に合わせて設定できます。</small></fieldset>
+      </div>
+      <label class="checkbox"><input id="save-keys" type="checkbox"> キーをこのマシンの .arena/keys.env に保存する（0600 / Git管理外）</label>
+      <p id="settings-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="close-dialog">閉じる</button><button type="submit" class="primary">設定を保存</button></div>
+    </form>
+  </dialog>
+  <dialog id="grade-dialog"><div class="dialog-heading"><div><span class="eyebrow">INDEPENDENT VERIFIER</span><h2 id="grade-dialog-title">採点結果</h2></div><button class="close-dialog" aria-label="閉じる">×</button></div><div id="grade-summary"></div><div id="grade-cases"></div><details><summary>エージェントへ返すJSON</summary><pre id="grade-json"></pre></details></dialog>
+</body>
+</html>
