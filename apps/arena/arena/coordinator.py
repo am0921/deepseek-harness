@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from . import docker
-from .config import APP, LANES, STATE, Limits, Provider, canonical_body, digest
+from .config import APP, LANES, STATE, Limits, Provider, canonical_body, digest, source_hashes
 from .metrics import Metrics
 from .runtime import Runtime
 from .state import TERMINAL, LaneState
@@ -23,6 +23,13 @@ from .state import TERMINAL, LaneState
 def utc_now() -> str:
     """Return an ISO timestamp for exported run records."""
     return datetime.now(UTC).isoformat()
+
+
+def error_text(error: BaseException) -> str:
+    """Expose preparation failures inside TaskGroups without dropping their actionable causes."""
+    if isinstance(error, BaseExceptionGroup):
+        return "; ".join(error_text(cause) for cause in error.exceptions)
+    return str(error)
 
 
 class PairGate:
@@ -117,6 +124,7 @@ class Coordinator:
         self.directory: Path | None = None
         self.log = None
         self.control_lock = asyncio.Lock()
+        self.running_files = source_hashes()
 
     def emit(self, kind: str, lane: str | None = None, **data: Any) -> None:
         """Append durable events and disconnect slow subscribers rather than delaying the experiment."""
@@ -147,6 +155,11 @@ class Coordinator:
             return {"ready": False, "reason": "Run ./apps/arena/verify.sh to verify this checkout."}
         try:
             report = json.loads(path.read_text())
+            if report["files"] != self.running_files:
+                return {
+                    "ready": False,
+                    "reason": "Verified source differs from this running controller. Restart run.sh.",
+                }
             stale = [
                 name
                 for name, expected in report["files"].items()
@@ -271,6 +284,8 @@ class Coordinator:
             async with asyncio.TaskGroup() as preparations:
                 for lane in self.lanes.values():
                     preparations.create_task(prepare(lane))
+            self.fairness["runtimeSettings"] = {lane.id: lane.runtime.facts for lane in self.lanes.values()}
+            (self.directory / "manifest.json").write_text(json.dumps(self.fairness, indent=2))
             self.started = time.perf_counter()
             self.emit("released", message="Both Dsh runtimes prepared; releasing identical task prompts")
             for lane in self.lanes.values():
@@ -285,12 +300,12 @@ class Coordinator:
                 if lane.state.phase not in TERMINAL:
                     self.transition(lane, "stop", "Stopped by user")
         except Exception as error:
-            self.error = str(error)
-            self.gate.abort(str(error))
-            self.emit("error", message=str(error))
+            self.error = error_text(error)
+            self.gate.abort(self.error)
+            self.emit("error", message=self.error)
             for lane in self.lanes.values():
                 if lane.state.phase not in TERMINAL:
-                    self.transition(lane, "error", str(error))
+                    self.transition(lane, "error", self.error)
         finally:
             if self.started is None or any(lane.state.phase == "stopped" for lane in self.lanes.values()):
                 await self.close_runtimes()

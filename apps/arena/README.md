@@ -31,7 +31,7 @@ The demo exercises real Dsh, PTC, Docker, grading, repair, and regrading through
 ./apps/arena/verify.sh
 ```
 
-Stop releases retained agent containers. Runs and reports are stored under `.arena/runs/`. After changing verified source, rerun verification before starting an experiment.
+Stop releases retained agent containers. Runs and reports are stored under `.arena/runs/`. After changing verified source, rerun verification and restart the controller before starting an experiment.
 
 <a id="fairness-and-grading"></a>
 ## Fairness and grading
@@ -39,6 +39,8 @@ Stop releases retained agent containers. Runs and reports are stored under `.are
 Both lanes use the same immutable agent image and PTC settings. A barrier forwards the initial requests only after their JSON bodies match apart from the model ID. The UI reports the actual dispatch difference; arrival times at separate providers cannot be synchronized.
 
 Each agent has 2 vCPUs on disjoint CPU sets, 1536 MiB without swap, 128 processes, and a 256 MiB tmpfs workspace. Docker settings are checked after container creation. Provider hardware, cache state, and load remain outside this controller's control.
+
+Each lane has a separate internal network. Its only outward transport is a fixed-destination relay to the authenticated model gateway, capped at 0.25 vCPU and 64 MiB with IP forwarding disabled. Agents cannot dial the host control API or the other lane directly. A real Docker test checks both successful model transport and blocked direct-IP access to host control.
 
 At each completed SDK turn, the controller pauses the agent, snapshots its files, and runs a separate offline grader limited to 0.5 vCPU and 256 MiB. Candidate servers run under a different UID from the protected grader. The suite has 23 cases, including 1600 deterministic generated operations; four independent cases can run concurrently. The exact JSON report returns to the same Session, and repair continues within the configured limits. After a passing result, the agent acknowledges it and the controller verifies that the graded files remain unchanged.
 

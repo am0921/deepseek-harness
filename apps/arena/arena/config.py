@@ -21,6 +21,29 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def source_hashes() -> dict[str, str]:
+    """Fingerprint the proof, controller, task, runtime, native UI integration, and tests."""
+    files = sorted(
+        {
+            *APP.glob("arena/*.py"),
+            *APP.glob("tests/**/*.py"),
+            *APP.glob("formal/*"),
+            *APP.glob("runtime/*"),
+            *APP.glob("static/*"),
+            *APP.glob("*.sh"),
+            APP / "task.txt",
+            APP / "verify.py",
+            APP / "prepare_lean.py",
+            APP / "Dockerfile",
+            APP / "pyproject.toml",
+            APP / "uv.lock",
+            ROOT / "packages/client/ui-workspace/src/client/arena-session.ts",
+            ROOT / "packages/client/ui-workspace/src/client/index.ts",
+        }
+    )
+    return {os.path.relpath(path, APP): digest(path) for path in files if path.is_file()}
+
+
 @dataclass(frozen=True)
 class Rates:
     """USD per million tokens, represented as decimal strings without rounding."""

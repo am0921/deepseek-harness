@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from arena import docker
-from arena.config import APP, ROOT, STATE, Limits, digest
+from arena.config import APP, ROOT, STATE, Limits, source_hashes
 from arena.coordinator import utc_now
 from prepare_lean import RELEASES
 
@@ -91,29 +91,6 @@ async def docker_checks() -> dict[str, object]:
         rejected[mutation] = failures
         print(f"Mutation rejected: {mutation} ({len(failures)} failing cases)", flush=True)
     return {"oracle": oracle, "positiveControl": positive, "mutationsRejected": rejected}
-
-
-def source_hashes() -> dict[str, str]:
-    """Fingerprint the exact proof, task, runtime, UI, and tests before and after checking."""
-    files = sorted(
-        {
-            *APP.glob("arena/*.py"),
-            *APP.glob("tests/**/*.py"),
-            *APP.glob("formal/*"),
-            *APP.glob("runtime/*"),
-            *APP.glob("static/*"),
-            *APP.glob("*.sh"),
-            APP / "task.txt",
-            APP / "verify.py",
-            APP / "prepare_lean.py",
-            APP / "Dockerfile",
-            APP / "pyproject.toml",
-            APP / "uv.lock",
-            ROOT / "packages/client/ui-workspace/src/client/arena-session.ts",
-            ROOT / "packages/client/ui-workspace/src/client/index.ts",
-        }
-    )
-    return {os.path.relpath(path, APP): digest(path) for path in files if path.is_file()}
 
 
 def main() -> None:

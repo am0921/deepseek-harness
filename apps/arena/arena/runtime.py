@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import docker
 from .config import APP, Limits
+from .network import Relay
 
 
 class Runtime:
@@ -47,16 +48,20 @@ class Runtime:
         self.ui_ready = asyncio.Event()
         self.control_port = int(urlsplit(gateway).port) - 1
         self.public_url = f"http://127.0.0.1:{self.control_port}/dsh/{('official', 'engy')[lane]}/"
+        self.relay = Relay(name, lane, limits, self.control_port + 1, image)
 
     async def prepare(self) -> None:
         """Boot the pinned profile and complete SDK initialization before the shared release."""
+        await self.relay.prepare()
         self.workspace_volume = await docker.create_workspace()
         await docker.command(
             "create",
             "-i",
             *docker.isolation(self.name, self.lane, self.limits),
-            "--publish",
-            "127.0.0.1::3080",
+            "--network",
+            self.relay.network,
+            "--network-alias",
+            "arena-agent",
             "--mount",
             f"type=bind,source={APP / 'runtime/ptc.yml'},target=/etc/arena/ptc.yml,readonly",
             "--mount",
@@ -64,7 +69,7 @@ class Runtime:
             "--env",
             f"DEEPSEEK_API_KEY={self.token}",
             "--env",
-            f"DEEPSEEK_BASE_URL={self.gateway}",
+            f"DEEPSEEK_BASE_URL={self.gateway.replace('host.docker.internal', 'arena-relay')}",
             "--env",
             f"ARENA_PUBLIC_URL={self.public_url}",
             self.image,
@@ -82,6 +87,7 @@ class Runtime:
             and actual["Memory"] == actual["MemorySwap"] == expected_memory
             and actual["PidsLimit"] == self.limits.pids
             and actual["ReadonlyRootfs"]
+            and set(container["NetworkSettings"]["Networks"]) == {self.relay.network}
         ):
             raise RuntimeError("Docker did not enforce the agreed per-lane resource settings")
         self.facts = {
@@ -91,6 +97,7 @@ class Runtime:
             "memoryBytes": actual["Memory"],
             "pids": actual["PidsLimit"],
             "readOnlyRoot": actual["ReadonlyRootfs"],
+            "modelRelay": self.relay.facts,
         }
         self.process = await asyncio.create_subprocess_exec(
             "docker",
@@ -116,7 +123,7 @@ class Runtime:
             timeout=90,
         )
         await asyncio.wait_for(self.ui_ready.wait(), 90)
-        _, port, _ = await docker.command("port", self.name, "3080/tcp")
+        _, port, _ = await docker.command("port", self.relay.name, f"{self.relay.ui_port}/tcp")
         self.web_port = int(port.decode().strip().rsplit(":", 1)[1])
 
     async def _read(self) -> None:
@@ -208,3 +215,4 @@ class Runtime:
         for reader in self.readers:
             reader.cancel()
         await asyncio.gather(*self.readers, return_exceptions=True)
+        await self.relay.close()

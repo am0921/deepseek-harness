@@ -1,12 +1,13 @@
 """Start/stop races must settle the newly admitted run and retained native views."""
 
 import asyncio
+import json
 from types import SimpleNamespace
 
 import pytest
 
 import arena.coordinator as module
-from arena.config import providers
+from arena.config import APP, digest, providers
 from arena.coordinator import Coordinator
 
 
@@ -85,3 +86,30 @@ async def test_cleanup_failure_is_reported_and_remains_retryable(monkeypatch, tm
     with pytest.raises(RuntimeError, match="Docker unavailable"):
         await current.stop()
     assert runtime.web_port == 12345
+
+
+@pytest.mark.parametrize("loaded_hash", ["current", "previous-code"])
+def test_fresh_verification_cannot_authorize_a_controller_running_older_code(
+    monkeypatch, tmp_path, loaded_hash
+):
+    actual = digest(APP / "task.txt")
+    monkeypatch.setattr(module, "STATE", tmp_path)
+    monkeypatch.setattr(
+        module, "source_hashes", lambda: {"task.txt": actual if loaded_hash == "current" else loaded_hash}
+    )
+    current = Coordinator(providers(), 8766)
+    (tmp_path / "verification.json").write_text(
+        json.dumps(
+            {
+                "files": {"task.txt": actual},
+                "passed": True,
+                "checkedAt": "test",
+                "theorems": 18,
+                "tests": 1,
+            }
+        )
+    )
+    status = current.proof_status()
+    assert status["ready"] is (loaded_hash == "current")
+    if loaded_hash != "current":
+        assert "Restart" in status["reason"]

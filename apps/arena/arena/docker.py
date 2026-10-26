@@ -137,20 +137,32 @@ def isolation(name: str, lane: int, limits: Limits, *, verifier: bool = False) -
 
 async def create_workspace() -> str:
     """Allocate a bounded tmpfs volume that Docker's archive API can snapshot while paused."""
-    _, name, _ = await command(
-        "volume",
-        "create",
-        "--driver",
-        "local",
-        "--label",
-        "dsh-arena.managed=true",
-        "--opt",
-        "type=tmpfs",
-        "--opt",
-        "device=tmpfs",
-        "--opt",
-        "o=size=256m,uid=1000,gid=1000,mode=0755",
+    creation = asyncio.create_task(
+        command(
+            "volume",
+            "create",
+            "--driver",
+            "local",
+            "--label",
+            "dsh-arena.managed=true",
+            "--opt",
+            "type=tmpfs",
+            "--opt",
+            "device=tmpfs",
+            "--opt",
+            "o=size=256m,uid=1000,gid=1000,mode=0755",
+        )
     )
+    try:
+        _, name, _ = await asyncio.shield(creation)
+    except asyncio.CancelledError:
+        try:
+            _, name, _ = await creation
+        except Exception:
+            pass
+        else:
+            await command("volume", "rm", name.decode().strip())
+        raise
     return name.decode().strip()
 
 
